@@ -259,7 +259,7 @@ function renderTransition() {
     current = STATE.WATER2;
     progress2 = 0;
     render();
-  }, 1800);
+  }, 4000);
 }
 
 function renderWater2() {
