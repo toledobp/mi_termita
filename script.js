@@ -321,7 +321,7 @@ function renderBloomFlash() {
   `;
   spawnSparkles(document.getElementById('visual'), 16);
   spawnPetalsFloating(document.getElementById('visual'), 10);
-  setTimeout(() => { current = STATE.FINAL; render(); }, 1600);
+  setTimeout(() => { current = STATE.FINAL; render(); }, 4000);
 }
 
 function renderFinal() {
