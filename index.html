@@ -1,360 +1,363 @@
-<!doctype html>
+/* ============================================================
+   Historia interactiva — "Hay algo especial para ti"
+   Estados: intro -> riego1 (0/50) -> transición -> riego2 (0/15)
+            -> floración -> mensaje final
+   Todo el arte es SVG generado por código (nada de imágenes/video).
+   ============================================================ */
 
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Exotic Trading - Cursos de Trading</title>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <meta name="description" content="Venta de cursos de trading con diseño exótico — landing page frontend (HTML + CSS)">
-  <style>
-    /* -----------------------------
-       Variables & Reset
-       ----------------------------- */
-    :root{
-      --bg1: #040218; /* deep space */
-      --bg2: #0f1226; /* darker */
-      --accent1: #8b5cf6; /* purple */
-      --accent2: #06b6d4; /* teal */
-      --accent3: #ffdd57; /* gold */
-      --glass: rgba(255,255,255,0.06);
-      --glass-2: rgba(255,255,255,0.04);
-      --card-shadow: 0 10px 30px rgba(2,6,23,0.6);
-      --glass-border: rgba(255,255,255,0.08);
-      --radius: 16px;
-      --max-width: 1200px;
+const app = document.getElementById('app');
+
+const STATE = {
+  INTRO: 'intro',
+  WATER1: 'water1',
+  TRANSITION: 'transition',
+  WATER2: 'water2',
+  BLOOM: 'bloom',
+  FINAL: 'final'
+};
+
+let current = STATE.INTRO;
+let progress1 = 0;   // 0..50
+let progress2 = 0;   // 0..15
+const NEEDED1 = 50;
+const NEEDED2 = 15;
+
+/* ---------------- Snail (original character, hand-drawn feel) ---------------- */
+function snailSVG({ happy = false, reaching = false } = {}) {
+  return `
+  <svg class="snail-wrap" viewBox="0 0 240 170" width="220" height="156">
+    <!-- shell -->
+    <g transform="translate(58,78)">
+      <circle r="46" fill="var(--shell)"/>
+      <path d="M0,0 m-32,0 a32,32 0 1,1 64,0 a32,32 0 1,1 -64,0" fill="none" stroke="var(--shell-dark)" stroke-width="4" opacity=".5"/>
+      <path d="M0,-20 A20,20 0 1 1 -1,-20" fill="none" stroke="var(--shell-dark)" stroke-width="4"/>
+      <circle r="8" fill="var(--shell-dark)"/>
+    </g>
+    <!-- body -->
+    <path d="M18,150 Q10,100 50,92 Q95,84 118,110 Q132,126 118,140 Q90,158 18,150 Z" fill="var(--body-snail)"/>
+    <!-- head -->
+    <circle cx="128" cy="96" r="26" fill="var(--body-snail)"/>
+    <ellipse class="snail-blush" cx="112" cy="104" rx="6" ry="4"/>
+    <!-- antennae -->
+    <path class="snail-antenna" d="M118,78 Q110,55 104,48"/>
+    <path class="snail-antenna" d="M136,78 Q142,55 148,48"/>
+    <circle cx="104" cy="46" r="4.5" fill="var(--shell-dark)"/>
+    <circle cx="148" cy="46" r="4.5" fill="var(--shell-dark)"/>
+    <!-- eyes -->
+    ${happy
+      ? `<path class="snail-eye" d="M119,94 q4,-6 8,0"/><path class="snail-eye" d="M133,94 q4,-6 8,0"/>`
+      : `<path class="snail-eye" d="M120,92 q4,-5 7,0"/><path class="snail-eye" d="M134,92 q4,-5 7,0"/>`
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family:'Poppins',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;
-      background: radial-gradient(1200px 600px at 10% 10%, rgba(139,92,246,0.12), transparent 8%),
-                  radial-gradient(1000px 400px at 90% 90%, rgba(6,182,212,0.06), transparent 12%),
-                  linear-gradient(180deg,var(--bg1),var(--bg2));
-      color:#e6eef8;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      overflow-x:hidden;
-      line-height:1.45;
-    }/* -----------------------------
-   Helpers
-   ----------------------------- */
-.container{width:calc(100% - 40px); max-width:var(--max-width); margin:0 auto}
-.row{display:flex;gap:24px;align-items:center}
-.flex{display:flex}
-.center{display:flex;align-items:center;justify-content:center}
-h1,h2,h3{margin:0}
-p{margin:0}
-
-/* -----------------------------
-   Animated Background Blobs (exotic feel)
-   ----------------------------- */
-.blobs{
-  position:fixed;inset:0;z-index:0;pointer-events:none;mix-blend-mode:screen;opacity:0.85;
-}
-.blob{
-  position:absolute;border-radius:50%;filter:blur(60px);transform:translate3d(0,0,0);
-  animation:float 12s ease-in-out infinite;
-  opacity:0.95;
-}
-.blob.b1{width:520px;height:520px;background:linear-gradient(45deg,var(--accent1),#ff6bcb);left:-120px;top:-60px;animation-duration:14s}
-.blob.b2{width:380px;height:380px;background:linear-gradient(45deg,var(--accent2),#2dd4bf);right:-80px;bottom:-80px;animation-duration:10s}
-.blob.b3{width:260px;height:260px;background:linear-gradient(45deg,var(--accent3),#ff8a00);left:40%;top:20%;animation-duration:18s}
-@keyframes float{0%{transform:translateY(0) scale(1)}50%{transform:translateY(-30px) scale(1.06)}100%{transform:translateY(0) scale(1)}}
-
-/* -----------------------------
-   Nav
-   ----------------------------- */
-header{position:relative;z-index:10;padding:22px 0}
-.nav{display:flex;align-items:center;justify-content:space-between}
-.brand{display:flex;align-items:center;gap:12px}
-.logo{
-  width:54px;height:54px;border-radius:12px;display:grid;place-items:center;font-family:'Orbitron';font-weight:700;
-  background:linear-gradient(135deg,var(--accent1),var(--accent2));box-shadow:0 6px 20px rgba(139,92,246,0.16);
-}
-nav ul{display:flex;gap:18px;list-style:none;padding:0;margin:0;align-items:center}
-nav a{color:inherit;text-decoration:none;font-weight:600;opacity:0.9}
-.cta{padding:10px 16px;border-radius:12px;background:linear-gradient(90deg,var(--accent2),var(--accent1));box-shadow:0 8px 25px rgba(6,182,212,0.08);font-weight:700}
-
-/* Mobile nav */
-.hamburger{display:none;cursor:pointer}
-@media(max-width:880px){nav ul{display:none}.hamburger{display:block}}
-
-/* -----------------------------
-   Hero
-   ----------------------------- */
-.hero{padding:60px 0 40px;position:relative;z-index:5}
-.hero-grid{display:grid;grid-template-columns:1fr 460px;gap:36px;align-items:center}
-.eyebrow{display:inline-flex;padding:8px 12px;border-radius:999px;background:linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));backdrop-filter: blur(4px);border:1px solid var(--glass-border);font-weight:600}
-.headline{font-family:'Orbitron',sans-serif;font-size:40px;line-height:1.03;letter-spacing:-0.02em;margin-top:18px}
-.sub{color:rgba(230,238,248,0.82);margin-top:14px;font-size:15px}
-.hero-cta{margin-top:22px;display:flex;gap:12px}
-.btn-ghost{padding:10px 14px;border-radius:12px;border:1px solid var(--glass-border);background:transparent;font-weight:600}
-
-/* Glass card */
-.card{
-  background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
-  border-radius:18px;padding:22px;border:1px solid var(--glass-border);box-shadow:var(--card-shadow);
+    <!-- smile -->
+    <path class="snail-eye" d="M120,106 q10,8 20,0" stroke-width="3.4"/>
+  </svg>`;
 }
 
-/* Pricing / features area */
-.features{padding:40px 0}
-.grid-feat{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.feat{padding:20px;border-radius:14px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border:1px solid rgba(255,255,255,0.03)}
-.feat h3{font-size:16px}
-
-/* Pricing cards */
-.pricing{padding:36px 0}
-.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.plan{padding:26px;border-radius:16px;background:linear-gradient(180deg, rgba(10,12,20,0.6), rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.03);position:relative;overflow:hidden}
-.plan .tag{position:absolute;right:12px;top:12px;padding:6px 10px;border-radius:999px;font-weight:700;background:linear-gradient(90deg,var(--accent3),#ff8a60);color:#0b0720}
-.price{font-family:'Orbitron';font-size:28px;margin-top:8px}
-.include{margin-top:14px;font-size:14px;color:rgba(230,238,248,0.85)}
-.plan .buy{display:inline-block;margin-top:18px;padding:12px 16px;border-radius:12px;background:linear-gradient(90deg,var(--accent2),var(--accent1));font-weight:700}
-
-/* Testimonials */
-.testimonials{padding:28px 0}
-.t-grid{display:flex;gap:16px;align-items:stretch}
-.t-card{flex:1;padding:18px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03)}
-
-/* Footer */
-footer{padding:28px 0;border-top:1px solid rgba(255,255,255,0.03);margin-top:30px}
-
-/* Responsive tweaks */
-@media(max-width:1100px){.hero-grid{grid-template-columns:1fr 360px}}
-@media(max-width:880px){
-  .hero-grid{grid-template-columns:1fr;gap:20px}
-  .pricing-grid{grid-template-columns:1fr}
-  .grid-feat{grid-template-columns:1fr}
-  .t-grid{flex-direction:column}
-  .headline{font-size:32px}
+/* ---------------- Plant stage 1: grows continuously with progress (0..1) ---------------- */
+function plantStage1SVG(t) {
+  // t: 0..1 progress through the 50 waterings
+  const stemH = 10 + t * 80;                 // stem height grows
+  const leafScale = Math.min(1, t * 2.2);     // leaves fade/scale in early-mid
+  const budR = 4 + t * 10;                    // small bud forms at the tip
+  const glow = 0.15 + t * 0.55;
+  return `
+  <svg viewBox="0 0 160 170" width="150" height="160" style="filter:drop-shadow(0 0 ${10 + t*18}px rgba(246,195,67,${glow}))">
+    <ellipse cx="80" cy="158" rx="50" ry="9" fill="#3a2412"/>
+    <path d="M80,158 L80,${158 - stemH}" stroke="var(--stem)" stroke-width="6" stroke-linecap="round"/>
+    <g transform="translate(80,${158 - stemH*0.55}) scale(${leafScale})">
+      <path d="M0,0 Q-26,-8 -30,14" fill="none" stroke="var(--leaf-dark)" stroke-width="6" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(80,${158 - stemH*0.75}) scale(${leafScale})">
+      <path d="M0,0 Q26,-4 32,18" fill="none" stroke="var(--leaf)" stroke-width="6" stroke-linecap="round"/>
+    </g>
+    <circle cx="80" cy="${158 - stemH}" r="${budR}" fill="var(--gold-soft)"/>
+  </svg>`;
 }
 
-/* Fancy neon underline animation */
-.neon{
-  position:relative;display:inline-block;padding-bottom:6px;
+/* ---------------- Plant stage 2: bud opening into full flower (0..1) ---------------- */
+function plantStage2SVG(t) {
+  // Milestones per spec are just smooth interpolation checkpoints -> use t directly.
+  const petalCount = Math.round(2 + t * 8);      // 2 -> 10 petals appearing
+  const petalLen = 6 + t * 30;
+  const petalOpen = t;                            // 0 closed .. 1 fully open (angle spread)
+  const coreR = 6 + t * 10;
+  const glow = 0.25 + t * 0.9;
+  let petals = '';
+  for (let i = 0; i < petalCount; i++) {
+    const angle = (360 / petalCount) * i;
+    const bendOut = 20 + petalOpen * 20; // petals swing outward as it opens
+    petals += `<ellipse cx="0" cy="${-14 - petalOpen*bendOut*0.4}" rx="9" ry="${petalLen}"
+                fill="var(--gold-soft)" transform="rotate(${angle}) translate(0,${-petalOpen*6})"/>`;
+  }
+  return `
+  <svg viewBox="0 0 180 210" width="170" height="200" style="filter:drop-shadow(0 0 ${16+t*26}px rgba(246,195,67,${glow}))">
+    <ellipse cx="90" cy="198" rx="54" ry="9" fill="#3a2412"/>
+    <path d="M90,198 L90,90" stroke="var(--stem)" stroke-width="7" stroke-linecap="round"/>
+    <path d="M90,138 Q56,126 50,150" fill="none" stroke="var(--leaf-dark)" stroke-width="6" stroke-linecap="round"/>
+    <path d="M90,150 Q126,138 136,160" fill="none" stroke="var(--leaf)" stroke-width="6" stroke-linecap="round"/>
+    <g transform="translate(90,80)">
+      ${petals}
+      <circle r="${coreR}" fill="var(--gold)"/>
+    </g>
+  </svg>`;
 }
-.neon:after{content:'';position:absolute;left:0;right:0;bottom:0;height:6px;background:linear-gradient(90deg,var(--accent2),var(--accent1));filter:blur(8px);opacity:0.9;transform:scaleX(0);transform-origin:left;transition:transform .45s cubic-bezier(.2,.9,.2,1)}
-.neon:hover:after{transform:scaleX(1)}
 
-/* Small forms */
-.input{width:100%;padding:12px 14px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.06)}
+function fullFlowerSVG() {
+  let petals = '';
+  for (let i = 0; i < 10; i++) {
+    petals += `<ellipse cx="0" cy="-34" rx="12" ry="28" fill="var(--gold-soft)" transform="rotate(${i*36})"/>`;
+  }
+  return `
+  <svg viewBox="0 0 200 230" width="190" height="220" class="glow-strong">
+    <ellipse cx="100" cy="218" rx="58" ry="10" fill="#3a2412"/>
+    <path d="M100,218 L100,110" stroke="var(--stem)" stroke-width="8" stroke-linecap="round"/>
+    <path d="M100,150 Q62,136 55,162" fill="none" stroke="var(--leaf-dark)" stroke-width="7" stroke-linecap="round"/>
+    <path d="M100,164 Q140,150 150,174" fill="none" stroke="var(--leaf)" stroke-width="7" stroke-linecap="round"/>
+    <g transform="translate(100,96)">${petals}<circle r="17" fill="var(--gold)"/></g>
+  </svg>`;
+}
 
-/* micro animation */
-.float-up{transform:translateY(6px);animation:pop 1s cubic-bezier(.2,.9,.2,1) forwards}
-@keyframes pop{to{transform:translateY(0);opacity:1}}
+/* ---------------- Ambient particles ---------------- */
+function spawnSparkles(container, count = 3) {
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'sparkle';
+    const size = 3 + Math.random() * 4;
+    s.style.width = s.style.height = size + 'px';
+    s.style.left = (30 + Math.random() * 60) + '%';
+    s.style.top = (20 + Math.random() * 50) + '%';
+    container.appendChild(s);
+    setTimeout(() => s.remove(), 1100);
+  }
+}
+function spawnDrops(container, count) {
+  for (let i = 0; i < count; i++) {
+    const d = document.createElement('div');
+    d.className = 'drop';
+    d.textContent = '💧';
+    d.style.left = (38 + Math.random() * 30) + '%';
+    d.style.top = '4px';
+    d.style.animationDelay = (i * 0.06) + 's';
+    container.appendChild(d);
+    setTimeout(() => d.remove(), 750);
+  }
+}
+function spawnPetalsFloating(container, count = 8) {
+  const leaves = ['🌼', '🍃', '✨'];
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'petal';
+    p.textContent = leaves[i % leaves.length];
+    p.style.left = Math.random() * 100 + '%';
+    p.style.animationDuration = (5 + Math.random() * 3) + 's';
+    p.style.animationDelay = (Math.random() * 2) + 's';
+    container.appendChild(p);
+  }
+}
+function spawnHearts(container, count = 6) {
+  for (let i = 0; i < count; i++) {
+    const h = document.createElement('div');
+    h.className = 'mini-heart';
+    h.textContent = '♡';
+    h.style.left = (20 + Math.random() * 60) + '%';
+    h.style.bottom = '10px';
+    h.style.animationDelay = (Math.random() * 3) + 's';
+    container.appendChild(h);
+  }
+}
 
-  </style>
-</head>
-<body>
-  <!-- Background blobs -->
-  <div class="blobs" aria-hidden="true">
-    <div class="blob b1"></div>
-    <div class="blob b2"></div>
-    <div class="blob b3"></div>
-  </div>  <header class="container">
-    <div class="nav">
-      <div class="brand">
-        <div class="logo">XT</div>
-        <div>
-          <div style="font-weight:700">Exotic Trading</div>
-          <div style="font-size:12px;color:rgba(230,238,248,0.6)">Aprende. Opera. Gana.</div>
+/* ---------------- Renderers per state ---------------- */
+function render() {
+  if (current === STATE.INTRO) return renderIntro();
+  if (current === STATE.WATER1) return renderWater1();
+  if (current === STATE.TRANSITION) return renderTransition();
+  if (current === STATE.WATER2) return renderWater2();
+  if (current === STATE.BLOOM) return renderBloomFlash();
+  if (current === STATE.FINAL) return renderFinal();
+}
+
+function renderIntro() {
+  app.innerHTML = `
+    <div class="scene">
+      <div class="caption">Hay algo especial para ti… <span style="opacity:.6">♡</span></div>
+      <div class="stage-visual">
+        ${snailSVG({ happy: true })}
+        <div style="position:absolute;bottom:8px;right:10px" id="heartHolder">
+          <svg id="heart" class="heart-btn" viewBox="0 0 100 90" width="78" height="70">
+            <path d="M50 85 C10 55 0 30 20 15 C35 4 48 15 50 25 C52 15 65 4 80 15 C100 30 90 55 50 85 Z" fill="#c94b4b"/>
+          </svg>
         </div>
-      </div><nav>
-    <ul>
-      <li><a href="#cursos">Cursos</a></li>
-      <li><a href="#planes">Planes</a></li>
-      <li><a href="#testimonios">Testimonios</a></li>
-      <li><a href="#contacto" class="cta">Empieza ahora</a></li>
-    </ul>
-  </nav>
-
-  <div class="hamburger" onclick="toggleNav()">
-    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
-  </div>
-</div>
-
-  </header>  <main class="container">
-    <section class="hero">
-      <div class="hero-grid">
-        <div>
-          <div class="eyebrow">Curso top del mes</div>
-          <h1 class="headline">Domina el <span class="neon">Trading</span> con estrategias <span style="color:var(--accent3)">exóticas</span> y probadas</h1>
-          <p class="sub">Cursos prácticos, señales reales, mentorías en vivo y una comunidad que opera contigo. Contenidos desde lo básico hasta estrategias algorítmicas.</p><div class="hero-cta">
-        <a class="cta" href="#planes">Ver planes</a>
-        <button class="btn-ghost" onclick="document.getElementById('contacto').scrollIntoView({behavior:'smooth'})">Contacto</button>
       </div>
+      <button class="primary-btn" id="startBtn">Presiona el corazón ♡</button>
+    </div>
+  `;
+  const heart = document.getElementById('heart');
+  const holder = document.getElementById('heartHolder');
+  const start = () => {
+    heart.classList.add('heart-pop');
+    spawnSparkles(document.querySelector('.stage-visual'), 8);
+    setTimeout(() => {
+      current = STATE.WATER1;
+      render();
+    }, 650);
+  };
+  heart.addEventListener('click', start);
+  document.getElementById('startBtn').addEventListener('click', start);
+}
 
-      <div style="margin-top:22px;display:flex;gap:14px;align-items:center">
-        <div class="card" style="display:flex;gap:12px;align-items:center;padding:12px 14px;width:320px">
-          <div style="width:48px;height:48px;border-radius:10px;background:linear-gradient(90deg,var(--accent1),var(--accent2));display:grid;place-items:center;font-weight:700">A+</div>
-          <div>
-            <div style="font-weight:700">Soporte 24/7</div>
-            <div style="font-size:13px;color:rgba(230,238,248,0.75)">Grupo privado + mentoría semanal</div>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div style="font-size:12px;color:rgba(230,238,248,0.6)">Usuarios satisfechos</div>
-          <div style="font-weight:700;font-size:22px">+12k</div>
-        </div>
+function renderWater1() {
+  const t = progress1 / NEEDED1;
+  app.innerHTML = `
+    <div class="scene">
+      <div class="caption">está creciendooo... <span style="opacity:.6">♡</span></div>
+      <div class="subcaption">tiene que regar la plantitaa jijii </div>
+      <div class="stage-visual" id="visual">
+        ${snailSVG({})}
+        <div style="position:absolute;bottom:0;right:6px">${plantStage1SVG(t)}</div>
+      </div>
+      <div class="can-wrap">
+        ${canButton()}
+        <div class="progress-track"><div class="progress-fill" id="fill" style="width:${t*100}%"></div></div>
+        <div class="progress-label" id="counter">${progress1} / ${NEEDED1}</div>
       </div>
     </div>
+  `;
+  document.getElementById('canBtn').addEventListener('click', onWater1);
+}
 
-    <aside>
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:12px;color:rgba(230,238,248,0.6)">Próximo webinar</div>
-            <div style="font-weight:700">Estrategias de alta probabilidad</div>
-          </div>
-          <div style="font-size:12px;color:rgba(230,238,248,0.6)">Gratis</div>
-        </div>
+function onWater1() {
+  progress1 = Math.min(NEEDED1, progress1 + 1);
+  const visual = document.getElementById('visual');
+  const snail = visual.querySelector('.snail-wrap');
+  snail.classList.remove('wiggle'); void snail.offsetWidth; snail.classList.add('wiggle');
 
-        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:12px 0">
+  spawnDrops(visual, 2 + Math.floor(Math.random() * 3));
+  if (progress1 % 4 === 0) spawnSparkles(visual, 2 + Math.floor(Math.random() * 3));
 
-        <p style="font-size:13px;color:rgba(230,238,248,0.8)">Apúntate al webinar en vivo y recibe una sesión de trading en directo.</p>
+  const t = progress1 / NEEDED1;
+  visual.querySelector('div[style*="right:6px"]').innerHTML = plantStage1SVG(t);
+  document.getElementById('fill').style.width = t * 100 + '%';
+  document.getElementById('counter').textContent = `${progress1} / ${NEEDED1}`;
 
-        <form style="margin-top:12px;display:flex;flex-direction:column;gap:10px" onsubmit="event.preventDefault();alert('¡Inscrito!')">
-          <input class="input" placeholder="Tu nombre" required />
-          <input class="input" type="email" placeholder="Correo electrónico" required />
-          <button class="buy" style="padding:10px 12px;border-radius:10px;background:linear-gradient(90deg,var(--accent2),var(--accent1));border:none;color:#0b0720;font-weight:700">Reservar mi lugar</button>
-        </form>
-      </div>
-    </aside>
+  if (progress1 >= NEEDED1) {
+    spawnSparkles(visual, 10);
+    setTimeout(() => { current = STATE.TRANSITION; render(); }, 700);
+  }
+}
 
-  </div>
-</section>
-
-<!-- Features -->
-<section id="cursos" class="features">
-  <div class="container">
-    <h2 style="font-size:22px;margin-bottom:12px">Qué aprenderás</h2>
-    <div class="grid-feat">
-      <div class="feat card">
-        <h3>Trading desde cero</h3>
-        <p style="margin-top:8px;color:rgba(230,238,248,0.8)">Bases, lectura de velas, tipos de órdenes y gestión del riesgo.</p>
-      </div>
-      <div class="feat card">
-        <h3>Estrategias exóticas</h3>
-        <p style="margin-top:8px;color:rgba(230,238,248,0.8)">Combinaciones de indicadores, setups poco comunes y optimización.</p>
-      </div>
-      <div class="feat card">
-        <h3>Automatización</h3>
-        <p style="margin-top:8px;color:rgba(230,238,248,0.8)">Introducción a bots, backtesting y deploy.</p>
+function renderTransition() {
+  app.innerHTML = `
+    <div class="scene">
+      <div class="caption">falta un poco maa, siga regandooo <span style="opacity:.6">♡</span></div>
+      <div class="stage-visual">
+        ${snailSVG({ happy: true })}
+        <div style="position:absolute;bottom:0;right:6px">${plantStage1SVG(1)}</div>
       </div>
     </div>
-  </div>
-</section>
+  `;
+  setTimeout(() => {
+    current = STATE.WATER2;
+    progress2 = 0;
+    render();
+  }, 1800);
+}
 
-<!-- Pricing -->
-<section id="planes" class="pricing">
-  <div class="container">
-    <h2 style="font-size:22px;margin-bottom:12px">Planes</h2>
-    <div class="pricing-grid">
-      <div class="plan card">
-        <div class="tag">Popular</div>
-        <div style="font-size:14px;color:rgba(230,238,248,0.7)">Básico</div>
-        <div class="price">29bs <span style="font-size:12px;color:rgba(230,238,248,0.6)">/ mes</span></div>
-        <div class="include">Acceso a cursos grabados + comunidad</div>
-        <a class="buy" href="#contacto">Comprar</a>
+function renderWater2() {
+  const t = progress2 / NEEDED2;
+  app.innerHTML = `
+    <div class="scene">
+      <div class="caption">litooo, jajsja faltaaa <span style="opacity:.6">♡</span></div>
+      <div class="subcaption">siga regandoo</div>
+      <div class="stage-visual" id="visual">
+        ${snailSVG({})}
+        <div style="position:absolute;bottom:0;right:0">${plantStage2SVG(t)}</div>
       </div>
-
-      <div class="plan card">
-        <div class="tag" style="background:linear-gradient(90deg,var(--accent1),#ff6bd2)">Pro</div>
-        <div style="font-size:14px;color:rgba(230,238,248,0.7)">Profesional</div>
-        <div class="price">99bs <span style="font-size:12px;color:rgba(230,238,248,0.6)">/ mes</span></div>
-        <div class="include">Mentorías semanales + señales en vivo + acceso a bots</div>
-        <a class="buy" href="#contacto">Comprar</a>
-      </div>
-
-      <div class="plan card">
-        <div class="tag" style="background:linear-gradient(90deg,#ffd86b,#ff8a60)">VIP</div>
-        <div style="font-size:14px;color:rgba(230,238,248,0.7)">VIP</div>
-        <div class="price">249bs <span style="font-size:12px;color:rgba(230,238,248,0.6)">/ mes</span></div>
-        <div class="include">1:1 coaching, señales avanzadas y capital gestionado (limitado)</div>
-        <a class="buy" href="#contacto">Comprar</a>
+      <div class="can-wrap">
+        ${canButton()}
+        <div class="progress-track"><div class="progress-fill" id="fill" style="width:${t*100}%"></div></div>
+        <div class="progress-label" id="counter">${progress2} / ${NEEDED2}</div>
       </div>
     </div>
-  </div>
-</section>
+  `;
+  document.getElementById('canBtn').addEventListener('click', onWater2);
+}
 
-<!-- Testimonials -->
-<section id="testimonios" class="testimonials">
-  <div class="container">
-    <h2 style="font-size:22px;margin-bottom:12px">Testimonios</h2>
-    <div class="t-grid">
-      <div class="t-card card">
-        <div style="display:flex;gap:10px;align-items:center">
-          <div style="width:48px;height:48px;border-radius:999px;background:linear-gradient(90deg,var(--accent1),var(--accent2));display:grid;place-items:center;font-weight:700">JP</div>
-          <div>
-            <div style="font-weight:700">Juan P.</div>
-            <div style="font-size:12px;color:rgba(230,238,248,0.6)">Trader independiente</div>
-          </div>
-        </div>
-        <p style="margin-top:10px;color:rgba(230,238,248,0.85)">"En 3 meses pasé de perder a tener una estrategia consistente. El curso sí vale su precio."</p>
-      </div>
+function onWater2() {
+  progress2 = Math.min(NEEDED2, progress2 + 1);
+  const visual = document.getElementById('visual');
+  const snail = visual.querySelector('.snail-wrap');
+  snail.classList.remove('wiggle'); void snail.offsetWidth; snail.classList.add('wiggle');
 
-      <div class="t-card card">
-        <div style="display:flex;gap:10px;align-items:center">
-          <div style="width:48px;height:48px;border-radius:999px;background:linear-gradient(90deg,#ff8a60,#ffd86b);display:grid;place-items:center;font-weight:700">MA</div>
-          <div>
-            <div style="font-weight:700">María A.</div>
-            <div style="font-size:12px;color:rgba(230,238,248,0.6)">Analista</div>
-          </div>
-        </div>
-        <p style="margin-top:10px;color:rgba(230,238,248,0.85)">"Los cursos tienen ejemplos reales y sesiones en vivo que me ayudaron el mercado, soy rica."</p>
-      </div>
+  spawnDrops(visual, 2 + Math.floor(Math.random() * 3));
+  spawnSparkles(visual, 2 + Math.floor(Math.random() * 4));
 
-      <div class="t-card card">
-        <div style="display:flex;gap:10px;align-items:center">
-          <div style="width:48px;height:48px;border-radius:999px;background:linear-gradient(90deg,#8b5cf6,#06b6d4);display:grid;place-items:center;font-weight:700">AK</div>
-          <div>
-            <div style="font-weight:700">Alan K.</div>
-            <div style="font-size:12px;color:rgba(230,238,248,0.6)">Estudiante</div>
-          </div>
-        </div>
-        <p style="margin-top:10px;color:rgba(230,238,248,0.85)">"soy un estudiante y gracias a este curso soy independiente. "</p>
+  const t = progress2 / NEEDED2;
+  visual.querySelector('div[style*="right:0"]').innerHTML = plantStage2SVG(t);
+  document.getElementById('fill').style.width = t * 100 + '%';
+  document.getElementById('counter').textContent = `${progress2} / ${NEEDED2}`;
+
+  if (progress2 >= NEEDED2) {
+    setTimeout(() => { current = STATE.BLOOM; render(); }, 500);
+  }
+}
+
+function canButton() {
+  return `
+  <button class="can-btn" id="canBtn">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M3 15h9l4-4h4l2 2-3 3H10l-2 2H3z" stroke="#2a1a08" stroke-width="1.6" fill="#2a1a08"/></svg>
+    Regar la flor
+  </button>`;
+}
+
+function renderBloomFlash() {
+  app.innerHTML = `
+    <div class="scene">
+      <div class="caption">uuyyy ya la iso crecer, para utee miamor :) <span style="opacity:.6">♡</span></div>
+      <div class="stage-visual" id="visual" style="background:radial-gradient(circle, rgba(255,224,138,.25), transparent 70%)">
+        ${snailSVG({ happy: true })}
+        <div style="position:absolute;bottom:0;right:0">${fullFlowerSVG()}</div>
       </div>
     </div>
-  </div>
-</section>
+  `;
+  spawnSparkles(document.getElementById('visual'), 16);
+  spawnPetalsFloating(document.getElementById('visual'), 10);
+  setTimeout(() => { current = STATE.FINAL; render(); }, 1600);
+}
 
-<!-- Contact / CTA -->
-<section id="contacto" style="padding:36px 0">
-  <div class="container">
-    <div class="card" style="display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap">
-      <div style="flex:1;min-width:240px">
-        <h3 style="font-size:20px">¿Listo para empezar?</h3>
-        <p style="color:rgba(230,238,248,0.75);margin-top:8px">Escribe tu correo y te contactamos con la mejor opción según tu nivel.</p>
+function renderFinal() {
+  app.innerHTML = `
+    <div class="scene">
+      <div class="caption">le quedó bonita <span style="opacity:.6">♡</span></div>
+      <div class="stage-visual" id="visual">
+        ${snailSVG({ happy: true })}
+        <div style="position:absolute;bottom:0;right:0">${fullFlowerSVG()}</div>
       </div>
-      <form style="display:flex;gap:10px;flex:1;min-width:240px;justify-content:flex-end" onsubmit="event.preventDefault();alert('¡Gracias! Nos contactamos pronto')">
-        <input class="input" type="email" placeholder="Tu correo" required />
-        <button class="buy" style="border:none;padding:12px 14px;border-radius:12px;background:linear-gradient(90deg,var(--accent2),var(--accent1));font-weight:700">Enviar</button>
-      </form>
+      <div id="msgBlock" style="min-height:70px">
+        <div class="final-msg hidden" id="finalMsg">La amo muchoo <3 </div>
+        <div class="final-sub hidden" id="finalSub">feli dia del amor miamorr 🌻</div>
+      </div>
+      <button class="primary-btn restart hidden" id="restartBtn"> otra flor?? :) </button>
     </div>
-  </div>
-</section>
+  `;
+  const visual = document.getElementById('visual');
+  spawnPetalsFloating(visual, 8);
+  spawnHearts(visual, 6);
+  setInterval(() => spawnSparkles(visual, 1), 900);
 
-  </main>  <footer class="container">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-      <div style="display:flex;gap:12px;align-items:center"><div class="logo" style="width:42px;height:42px;font-size:14px">XT</div><div style="font-size:13px">Exotic Trading © <span id="year"></span></div></div>
-      <div style="font-size:13px;color:rgba(230,238,248,0.6)">Política de privacidad · Términos · Echo por Branko Toledo</div>
-    </div>
-  </footer>  <script>
-    // small helpers: toggle mobile nav
-    function toggleNav(){
-      const ul = document.querySelector('nav ul');
-      if(!ul) return;
-      if(ul.style.display === 'flex'){ul.style.display='none'}else{ul.style.display='flex';ul.style.flexDirection='column';ul.style.background='linear-gradient(180deg, rgba(255,255,255,0.02), transparent)';ul.style.position='absolute';ul.style.right='20px';ul.style.top='72px';ul.style.padding='12px';ul.style.borderRadius='12px';ul.style.border='1px solid rgba(255,255,255,0.04)'}
-    }
+  setTimeout(() => {
+    document.getElementById('finalMsg').classList.remove('hidden');
+  }, 700);
+  setTimeout(() => {
+    document.getElementById('finalSub').classList.remove('hidden');
+  }, 1700);
+  setTimeout(() => {
+    const btn = document.getElementById('restartBtn');
+    btn.classList.remove('hidden');
+    btn.addEventListener('click', () => {
+      current = STATE.INTRO; progress1 = 0; progress2 = 0; render();
+    });
+  }, 2800);
+}
 
-    // set year
-    document.getElementById('year').textContent = new Date().getFullYear();
-
-    // very light accessibility helpers (focus outline)
-    document.addEventListener('keydown',function(e){if(e.key==='Tab'){document.body.classList.add('user-is-tabbing')}})
-  </script></body>
-</html>
-
-
+/* ---------------- Boot ---------------- */
+render();
