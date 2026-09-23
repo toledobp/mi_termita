@@ -1,0 +1,233 @@
+/* ===== Base ===== */
+:root{
+  --bg-deep:#1c130d;
+  --bg-mid:#2a1c12;
+  --cream:#f2e6cf;
+  --gold:#f6c343;
+  --gold-soft:#ffe08a;
+  --shell:#8a5a34;
+  --shell-dark:#5c3a20;
+  --body-snail:#e9d3b0;
+  --blush:#e8a08a;
+  --leaf:#7fae4d;
+  --leaf-dark:#4f7c30;
+  --stem:#5c8c3a;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;margin:0;}
+body{
+  font-family:'Segoe UI', system-ui, sans-serif;
+  background:radial-gradient(ellipse at 50% 20%, var(--bg-mid) 0%, var(--bg-deep) 75%);
+  color:var(--cream);
+  overflow:hidden;
+  min-height:100%;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+#app{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+}
+
+/* ===== Scene layout ===== */
+.scene{
+  width:min(92vw,520px);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  gap:14px;
+  position:relative;
+  z-index:2;
+}
+.caption{
+  font-size:1.4rem;
+  font-weight:500;
+  opacity:0;
+  animation:fadeIn 1s ease forwards;
+}
+.subcaption{
+  font-size:.92rem;
+  opacity:.7;
+  margin-top:-6px;
+  animation:fadeIn 1.4s ease forwards;
+}
+@keyframes fadeIn{ to{opacity:1;} }
+
+.stage-visual{
+  position:relative;
+  width:280px;
+  height:260px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+}
+svg{ display:block; overflow:visible; }
+
+/* ===== Snail ===== */
+.snail-eye{ stroke:#3a2515; stroke-width:4.5; stroke-linecap:round; fill:none; }
+.snail-blush{ fill:var(--blush); opacity:.55; }
+.snail-antenna{ stroke:var(--shell-dark); stroke-width:5; stroke-linecap:round; fill:none; }
+
+.snail-wrap{
+  transition:transform .25s ease;
+}
+.snail-wrap.wiggle{ animation:wiggle .5s ease; }
+@keyframes wiggle{
+  0%,100%{ transform:rotate(0deg); }
+  30%{ transform:rotate(-3deg) translateY(-2px); }
+  60%{ transform:rotate(2deg); }
+}
+
+/* ===== Heart button ===== */
+.heart-btn{
+  cursor:pointer;
+  transform-origin:center;
+  animation:pulse 1.7s ease-in-out infinite;
+}
+.heart-btn:active{ transform:scale(.9); }
+@keyframes pulse{
+  0%,100%{ filter:drop-shadow(0 0 6px rgba(233,90,90,.55)); transform:scale(1); }
+  50%{ filter:drop-shadow(0 0 20px rgba(233,90,90,.9)); transform:scale(1.06); }
+}
+.heart-pop{ animation:heartPop .5s ease forwards; }
+@keyframes heartPop{
+  0%{ transform:scale(1); opacity:1; }
+  60%{ transform:scale(1.4); opacity:.7; }
+  100%{ transform:scale(2.2); opacity:0; }
+}
+
+/* ===== Glow layers ===== */
+.glow-soft{ filter:drop-shadow(0 0 8px rgba(246,195,67,.45)); }
+.glow-strong{ filter:drop-shadow(0 0 30px rgba(246,195,67,.9)); }
+
+/* ===== Watering can button ===== */
+.can-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+}
+.can-btn{
+  background:linear-gradient(180deg,var(--gold-soft),var(--gold));
+  color:#2a1a08;
+  border:none;
+  border-radius:999px;
+  padding:14px 28px;
+  font-size:1rem;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(246,195,67,.28);
+  transition:transform .1s ease;
+}
+.can-btn:active{ transform:scale(.93); }
+.can-btn svg{ width:24px; height:24px; }
+
+.progress-track{
+  width:210px;
+  height:9px;
+  border-radius:999px;
+  background:rgba(255,255,255,.12);
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.08);
+}
+.progress-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--gold-soft),var(--gold));
+  width:0%;
+  transition:width .2s ease;
+}
+.progress-label{ font-size:.78rem; opacity:.65; }
+
+/* ===== Water drops & particles ===== */
+.drop{
+  position:absolute;
+  font-size:1rem;
+  pointer-events:none;
+  animation:dropFall .65s ease-out forwards;
+}
+@keyframes dropFall{
+  0%{ opacity:1; transform:translateY(0) scale(1); }
+  100%{ opacity:0; transform:translateY(55px) scale(.55); }
+}
+.sparkle{
+  position:absolute;
+  border-radius:50%;
+  background:var(--gold-soft);
+  pointer-events:none;
+  animation:sparkle 1.1s ease-out forwards;
+}
+@keyframes sparkle{
+  0%{ opacity:.95; transform:translateY(0) scale(1); }
+  100%{ opacity:0; transform:translateY(-30px) scale(.3); }
+}
+.petal{
+  position:absolute;
+  font-size:1rem;
+  opacity:.85;
+  animation:drift 7s linear infinite;
+  pointer-events:none;
+}
+@keyframes drift{
+  0%{ transform:translateY(-10px) translateX(0) rotate(0deg); opacity:.9; }
+  100%{ transform:translateY(300px) translateX(40px) rotate(200deg); opacity:0; }
+}
+.mini-heart{
+  position:absolute;
+  font-size:.9rem;
+  opacity:.9;
+  animation:floatUp 3.5s ease-in infinite;
+  pointer-events:none;
+}
+@keyframes floatUp{
+  0%{ transform:translateY(0); opacity:0; }
+  15%{ opacity:.9; }
+  100%{ transform:translateY(-160px); opacity:0; }
+}
+
+/* ===== Buttons ===== */
+.primary-btn{
+  background:none;
+  border:1px solid rgba(242,230,207,.4);
+  color:var(--cream);
+  padding:12px 24px;
+  border-radius:999px;
+  font-size:.95rem;
+  cursor:pointer;
+  opacity:.9;
+}
+.hidden{ display:none !important; }
+
+/* ===== Final message ===== */
+.final-msg{
+  font-size:2.2rem;
+  color:var(--gold);
+  font-weight:600;
+  line-height:1.3;
+  opacity:0;
+  animation:fadeIn 1.6s ease forwards;
+}
+.final-sub{
+  font-size:1.2rem;
+  color:var(--cream);
+  opacity:0;
+  margin-top:2px;
+  animation:fadeIn 1.6s ease 1s forwards;
+}
+.restart{
+  margin-top:18px;
+  opacity:0;
+  animation:fadeIn 1.6s ease 2s forwards;
+}
+
+@media (max-width:420px){
+  .caption{ font-size:1.15rem; }
+  .final-msg{ font-size:1.7rem; }
+  .stage-visual{ width:240px; height:220px; }
+}
