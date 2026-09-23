@@ -179,7 +179,7 @@ function render() {
 function renderIntro() {
   app.innerHTML = `
     <div class="scene">
-      <div class="caption">Hay algo especial para ti… <span style="opacity:.6">♡</span></div>
+      <div class="caption">le ise algoo pa utee <span style="opacity:.6">♡</span></div>
       <div class="stage-visual">
         ${snailSVG({ happy: true })}
         <div style="position:absolute;bottom:8px;right:10px" id="heartHolder">
@@ -188,7 +188,7 @@ function renderIntro() {
           </svg>
         </div>
       </div>
-      <button class="primary-btn" id="startBtn">Presiona el corazón ♡</button>
+      <button class="primary-btn" id="startBtn">aprete el botóonnn♡</button>
     </div>
   `;
   const heart = document.getElementById('heart');
